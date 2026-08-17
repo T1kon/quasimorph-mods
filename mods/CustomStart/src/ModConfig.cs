@@ -7,7 +7,7 @@ namespace CustomStart;
 [Serializable]
 public sealed class ModConfig
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 1;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -42,7 +42,6 @@ public sealed class ModConfig
         }
 
         config.Profiles = normalizedProfiles;
-        MigrateEarlyProfileName(config, warn);
 
         foreach (KeyValuePair<string, StartProfile> defaultProfile in CreateDefaultProfiles())
         {
@@ -57,38 +56,7 @@ public sealed class ModConfig
             profile.Value.Normalize(profile.Key, warn);
         }
 
-        if (config.SchemaVersion > CurrentSchemaVersion)
-        {
-            warn($"Configuration schema {config.SchemaVersion} is newer than supported schema {CurrentSchemaVersion}; CustomStart is disabled.");
-            config.Enabled = false;
-        }
-        else
-        {
-            if (config.SchemaVersion < 2)
-            {
-                MigrateLegacyStashDefaults(config);
-                warn("Configuration schema 1 was upgraded with the new accumulated-stockpile defaults.");
-            }
-
-            if (config.SchemaVersion < 3)
-            {
-                MigrateRoleStockpileDefaults(config);
-                warn("Configuration was upgraded with stage-specific arsenal, supply, augmentation, and recipe-history budgets.");
-            }
-
-            if (config.SchemaVersion < 4)
-            {
-                MigrateEstablishedCampaignDefaults(config);
-                warn("Configuration was upgraded with guaranteed core Magnum departments and campaign-age-adjusted Mid/Late accumulation budgets.");
-            }
-
-            if (config.SchemaVersion < 5)
-            {
-                warn("Configuration was upgraded with the EarlyMid bridge profile.");
-            }
-
-            config.SchemaVersion = CurrentSchemaVersion;
-        }
+        config.SchemaVersion = CurrentSchemaVersion;
 
         if (string.IsNullOrWhiteSpace(config.ActiveProfile) || !config.Profiles.ContainsKey(config.ActiveProfile))
         {
@@ -102,171 +70,6 @@ public sealed class ModConfig
         }
 
         return config;
-    }
-
-    private static void MigrateEarlyProfileName(ModConfig config, Action<string> warn)
-    {
-        if (string.Equals(config.ActiveProfile, "EarlyPlus", StringComparison.OrdinalIgnoreCase))
-        {
-            config.ActiveProfile = "Early";
-        }
-
-        if (!config.Profiles.TryGetValue("EarlyPlus", out StartProfile legacyProfile))
-        {
-            return;
-        }
-
-        if (!config.Profiles.ContainsKey("Early"))
-        {
-            config.Profiles.Add("Early", legacyProfile);
-        }
-
-        config.Profiles.Remove("EarlyPlus");
-        warn("Profile 'EarlyPlus' was renamed to 'Early'.");
-    }
-
-    private static void MigrateLegacyStashDefaults(ModConfig config)
-    {
-        MigrateLegacyStashProfile(config, "Early", 6, 12, 1, 4, 6, 1);
-        MigrateLegacyStashProfile(config, "Mid", 20, 35, 5, 10, 12, 3);
-        MigrateLegacyStashProfile(config, "Late", 40, 70, 12, 18, 20, 6);
-    }
-
-    private static void MigrateRoleStockpileDefaults(ModConfig config)
-    {
-        MigrateRoleStockpileProfile(config, "Early", 4, 6, 1, 18, 3, 4, 1, 12);
-        MigrateRoleStockpileProfile(config, "Mid", 10, 12, 3, 32, 6, 6, 2, 16);
-        MigrateRoleStockpileProfile(config, "Late", 18, 20, 6, 48, 10, 10, 4, 24);
-    }
-
-    private static void MigrateRoleStockpileProfile(
-        ModConfig config,
-        string profileName,
-        int oldEquipment,
-        int oldConsumables,
-        int oldChips,
-        int oldMaterialTypes,
-        int newEquipment,
-        int newConsumables,
-        int newChips,
-        int newMaterialTypes)
-    {
-        if (!config.Profiles.TryGetValue(profileName, out StartProfile profile))
-        {
-            return;
-        }
-
-        if (profile.Stash.EquipmentRolls == oldEquipment
-            && profile.Stash.ConsumableRolls == oldConsumables
-            && profile.Stash.ChipRolls == oldChips)
-        {
-            profile.Stash.EquipmentRolls = newEquipment;
-            profile.Stash.ConsumableRolls = newConsumables;
-            profile.Stash.ChipRolls = newChips;
-        }
-
-        if (profile.Stash.MaterialStockpile.TargetDistinctItems == oldMaterialTypes)
-        {
-            profile.Stash.MaterialStockpile.TargetDistinctItems = newMaterialTypes;
-        }
-    }
-
-    private static void MigrateLegacyStashProfile(
-        ModConfig config,
-        string profileName,
-        int oldEquipment,
-        int oldConsumables,
-        int oldChips,
-        int newEquipment,
-        int newConsumables,
-        int newChips)
-    {
-        if (!config.Profiles.TryGetValue(profileName, out StartProfile profile)
-            || profile.Stash.EquipmentRolls != oldEquipment
-            || profile.Stash.ConsumableRolls != oldConsumables
-            || profile.Stash.ChipRolls != oldChips)
-        {
-            return;
-        }
-
-        profile.Stash.EquipmentRolls = newEquipment;
-        profile.Stash.ConsumableRolls = newConsumables;
-        profile.Stash.ChipRolls = newChips;
-    }
-
-    private static void MigrateEstablishedCampaignDefaults(ModConfig config)
-    {
-        if (config.Profiles.TryGetValue("Early", out StartProfile early))
-        {
-            EnsureGuaranteedUpgradeIds(early.Magnum, StartProfile.CreateEarly().Magnum.GuaranteedUpgradeIds);
-        }
-
-        if (config.Profiles.TryGetValue("Mid", out StartProfile mid))
-        {
-            EnsureGuaranteedUpgradeIds(mid.Magnum, StartProfile.CreateMid().Magnum.GuaranteedUpgradeIds);
-            mid.Roster.TargetCloneCount = MigrateDefaultValue(mid.Roster.TargetCloneCount, 10, 14);
-            mid.Roster.TargetClassCount = MigrateDefaultValue(mid.Roster.TargetClassCount, 8, 12);
-            mid.Magnum.TargetUpgradeCount = MigrateDefaultValue(mid.Magnum.TargetUpgradeCount, 40, 90);
-            mid.Stash.EquipmentRolls = MigrateDefaultValue(mid.Stash.EquipmentRolls, 6, 8);
-            mid.Stash.ConsumableRolls = MigrateDefaultValue(mid.Stash.ConsumableRolls, 6, 8);
-            mid.Stash.ChipRolls = MigrateDefaultValue(mid.Stash.ChipRolls, 2, 3);
-            MigrateMaterialStockpile(mid.Stash.MaterialStockpile, false);
-            MigrateRoleStockpile(mid.Stash.RoleStockpile, false);
-        }
-
-        if (config.Profiles.TryGetValue("Late", out StartProfile late))
-        {
-            late.Stash.EquipmentRolls = MigrateDefaultValue(late.Stash.EquipmentRolls, 10, 14);
-            late.Stash.ConsumableRolls = MigrateDefaultValue(late.Stash.ConsumableRolls, 10, 14);
-            late.Stash.ChipRolls = MigrateDefaultValue(late.Stash.ChipRolls, 4, 6);
-            MigrateMaterialStockpile(late.Stash.MaterialStockpile, true);
-            MigrateRoleStockpile(late.Stash.RoleStockpile, true);
-        }
-    }
-
-    private static void EnsureGuaranteedUpgradeIds(MagnumSettings settings, IEnumerable<string> requiredIds)
-    {
-        HashSet<string> existing = new(settings.GuaranteedUpgradeIds, StringComparer.OrdinalIgnoreCase);
-        HashSet<string> excluded = new(settings.ExcludedUpgradeIds, StringComparer.OrdinalIgnoreCase);
-        foreach (string id in requiredIds)
-        {
-            if (!excluded.Contains(id) && existing.Add(id))
-            {
-                settings.GuaranteedUpgradeIds.Add(id);
-            }
-        }
-    }
-
-    private static void MigrateMaterialStockpile(MaterialStockpileSettings settings, bool late)
-    {
-        settings.TargetDistinctItems = MigrateDefaultValue(settings.TargetDistinctItems, late ? 24 : 16, late ? 40 : 28);
-        settings.MinimumCraftingStacks = MigrateDefaultValue(settings.MinimumCraftingStacks, late ? 2 : 1, late ? 3 : 2);
-        settings.MaximumCraftingStacks = MigrateDefaultValue(settings.MaximumCraftingStacks, late ? 5 : 3, late ? 8 : 6);
-        settings.MaximumUpgradeUnits = MigrateDefaultValue(settings.MaximumUpgradeUnits, late ? 8 : 4, late ? 12 : 6);
-        settings.MaximumRareItems = MigrateDefaultValue(settings.MaximumRareItems, late ? 8 : 4, late ? 10 : 5);
-    }
-
-    private static void MigrateRoleStockpile(RoleStockpileSettings settings, bool late)
-    {
-        settings.WeaponItems = MigrateDefaultValue(settings.WeaponItems, late ? 18 : 10, late ? 30 : 20);
-        settings.ArmorSets = MigrateDefaultValue(settings.ArmorSets, late ? 5 : 3, late ? 8 : 5);
-        settings.CommonAmmoTypes = MigrateDefaultValue(settings.CommonAmmoTypes, late ? 7 : 6, late ? 8 : 7);
-        settings.SpecialAmmoTypes = MigrateDefaultValue(settings.SpecialAmmoTypes, late ? 8 : 4, late ? 12 : 6);
-        settings.CommonAmmoStacks = MigrateDefaultValue(settings.CommonAmmoStacks, late ? 10 : 6, late ? 14 : 10);
-        settings.SpecialAmmoStacks = MigrateDefaultValue(settings.SpecialAmmoStacks, late ? 4 : 2, late ? 6 : 3);
-        settings.MedicalItemTypes = MigrateDefaultValue(settings.MedicalItemTypes, late ? 10 : 7, late ? 14 : 10);
-        settings.BasicMedicineStacks = MigrateDefaultValue(settings.BasicMedicineStacks, late ? 6 : 4, late ? 8 : 6);
-        settings.PremiumMedicineStacks = MigrateDefaultValue(settings.PremiumMedicineStacks, late ? 4 : 2, late ? 5 : 3);
-        settings.RepairKitTypes = MigrateDefaultValue(settings.RepairKitTypes, late ? 8 : 4, late ? 10 : 7);
-        settings.RepairKitStacks = MigrateDefaultValue(settings.RepairKitStacks, late ? 5 : 3, late ? 7 : 5);
-        settings.AugmentationItems = MigrateDefaultValue(settings.AugmentationItems, late ? 12 : 6, late ? 18 : 10);
-        settings.ImplantItems = MigrateDefaultValue(settings.ImplantItems, late ? 15 : 6, late ? 25 : 12);
-        settings.ProductionRecipeUnlocks = MigrateDefaultValue(settings.ProductionRecipeUnlocks, late ? 70 : 26, late ? 120 : 55);
-    }
-
-    private static int MigrateDefaultValue(int value, int oldDefault, int newDefault)
-    {
-        return value == oldDefault ? newDefault : value;
     }
 
     public StartProfile GetActiveProfile()

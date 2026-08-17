@@ -183,7 +183,6 @@ public static class Plugin
         {
             string json = File.ReadAllText(path);
             ModConfig? config = JsonConvert.DeserializeObject<ModConfig>(json);
-            int loadedSchemaVersion = config?.SchemaVersion ?? 0;
             ModConfig normalized = ModConfig.Normalize(config, message => Debug.LogWarning(LogPrefix + message));
             if (path.Equals(installedPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -197,22 +196,6 @@ public static class Plugin
                     Debug.LogWarning(
                         LogPrefix
                         + $"Using the installed config, but it could not be copied to '{persistentPath}'. "
-                        + exception.Message);
-                }
-            }
-
-            if (loadedSchemaVersion < ModConfig.CurrentSchemaVersion)
-            {
-                try
-                {
-                    File.WriteAllText(persistentPath, JsonConvert.SerializeObject(normalized, Formatting.Indented));
-                    Debug.Log(LogPrefix + $"Persisted configuration schema {normalized.SchemaVersion} to '{persistentPath}'.");
-                }
-                catch (Exception exception)
-                {
-                    Debug.LogWarning(
-                        LogPrefix
-                        + $"Using the migrated configuration, but it could not be persisted to '{persistentPath}'. "
                         + exception.Message);
                 }
             }
