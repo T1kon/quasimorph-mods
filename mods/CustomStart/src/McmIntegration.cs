@@ -97,6 +97,13 @@ internal static class McmIntegration
                 "Write last-start-report.json after generation.",
                 "Write diagnostic report"),
             new ConfigValue(
+                nameof(ModConfig.AllowCivilResistanceAndTezctlanReputationChanges),
+                config.AllowCivilResistanceAndTezctlanReputationChanges,
+                "General",
+                false,
+                "Allow Civil Resistance and Tezctlan to be selected as helped or rival factions. Their normal world progression is unaffected.",
+                "Civil Resistance/Tezctlan reputation"),
+            new ConfigValue(
                 "__ApplyNote",
                 "Changes apply when a genuinely new campaign is created.",
                 "General")
@@ -406,6 +413,9 @@ internal static class McmIntegration
             config.ActiveProfile = activeProfile;
             config.Seed = seed;
             config.WriteReport = Convert.ToBoolean(values[nameof(ModConfig.WriteReport)], CultureInfo.InvariantCulture);
+            config.AllowCivilResistanceAndTezctlanReputationChanges = Convert.ToBoolean(
+                values[nameof(ModConfig.AllowCivilResistanceAndTezctlanReputationChanges)],
+                CultureInfo.InvariantCulture);
             foreach (string profileName in ProfileNames)
             {
                 ApplyProfileValues(config.Profiles[profileName], profileName, values);

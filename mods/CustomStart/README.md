@@ -83,7 +83,8 @@ optional; without it, CustomStart continues to use JSON normally.
 
 The in-game screen exposes the settings most players are likely to change:
 
-- Enable/disable, active profile, deterministic seed, and diagnostic reporting.
+- Enable/disable, active profile, deterministic seed, special-faction reputation history, and
+  diagnostic reporting.
 - Elapsed time, helped/rival faction counts, and station-history counts for every profile.
 - Clone, class, and Magnum progression targets.
 - Faction reward counts; weapons, complete armor sets, common/specialist ammunition, medicine,
@@ -126,6 +127,7 @@ Top-level settings:
 | `Seed` | `null` creates a new random seed. An integer makes the generated plan reproducible. |
 | `WriteReport` | Writes the exact generated outcome after each new game. |
 | `DisableStationTransfersOnUnknownBuild` | On an unvalidated game assembly, suppress only station transfers while keeping the rest of the profile active. |
+| `AllowCivilResistanceAndTezctlanReputationChanges` | When true, Civil Resistance and Tezctlan may be selected as helped or rival factions. Defaults to false. |
 
 Faction selectors support two modes. An explicit selection uses `Ids`:
 
@@ -141,8 +143,9 @@ Faction selectors support two modes. An explicit selection uses `Ids`:
 
 A random selection uses `Count`; `AllowedIds` limits its pool and `ExcludedIds` removes choices.
 The helped and rival sets are always disjoint. Civil Resistance (`CResistance`) and Tezctlan are
-never selected for reputation history, although they still receive normal faction tech and world
-progression.
+excluded from reputation history by default, although they still receive normal faction tech and
+world progression. Set `AllowCivilResistanceAndTezctlanReputationChanges` to `true` to include both
+in explicit and random helped/rival selections.
 
 Roster restrictions apply to additional grants. Guaranteed IDs are attempted first, allowed lists
 limit the random grant pool, and excluded lists remove entries:

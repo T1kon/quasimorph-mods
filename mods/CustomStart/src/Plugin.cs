@@ -126,7 +126,8 @@ public static class Plugin
                     prepared.Profile,
                     prepared.ProfileName,
                     prepared.Seed,
-                    prepared.AllowStationTransfers)
+                    prepared.AllowStationTransfers,
+                    prepared.Config.AllowCivilResistanceAndTezctlanReputationChanges)
                 .Build();
             plan.GameAssemblySha256 = _assemblySha256;
             plan.StationTransfersEnabled = prepared.AllowStationTransfers;

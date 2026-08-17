@@ -22,6 +22,8 @@ public sealed class StartPlan
 
     public bool StationTransfersEnabled { get; set; }
 
+    public bool CivilResistanceAndTezctlanReputationChangesEnabled { get; set; }
+
     public List<string> HelpedFactions { get; set; } = new();
 
     public List<string> RivalFactions { get; set; } = new();

@@ -21,6 +21,8 @@ public sealed class ModConfig
 
     public bool DisableStationTransfersOnUnknownBuild { get; set; } = true;
 
+    public bool AllowCivilResistanceAndTezctlanReputationChanges { get; set; }
+
     public Dictionary<string, StartProfile> Profiles { get; set; } = CreateDefaultProfiles();
 
     public static ModConfig Normalize(ModConfig? config, Action<string> warn)

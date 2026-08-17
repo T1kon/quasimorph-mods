@@ -5,6 +5,7 @@
   "Seed": null,
   "WriteReport": true,
   "DisableStationTransfersOnUnknownBuild": true,
+  "AllowCivilResistanceAndTezctlanReputationChanges": false,
   "Profiles": {
     "Early": {
       "ElapsedDays": 180,

@@ -51,6 +51,7 @@ internal sealed class StartPlanner
     private readonly string _profileName;
     private readonly int _seed;
     private readonly bool _allowStationTransfers;
+    private readonly bool _allowCivilResistanceAndTezctlanReputationChanges;
     private readonly Random _random;
 
     public StartPlanner(
@@ -58,13 +59,15 @@ internal sealed class StartPlanner
         StartProfile profile,
         string profileName,
         int seed,
-        bool allowStationTransfers)
+        bool allowStationTransfers,
+        bool allowCivilResistanceAndTezctlanReputationChanges)
     {
         _state = state;
         _profile = profile;
         _profileName = profileName;
         _seed = seed;
         _allowStationTransfers = allowStationTransfers;
+        _allowCivilResistanceAndTezctlanReputationChanges = allowCivilResistanceAndTezctlanReputationChanges;
         _random = new Random(seed);
     }
 
@@ -73,14 +76,18 @@ internal sealed class StartPlanner
         SpaceTime spaceTime = Require<SpaceTime>();
         List<string> eligibleFactionIds = GetEligibleFactionIds();
         List<string> reputationFactionIds = eligibleFactionIds
-            .Where(id => !ReputationExcludedFactionIds.Contains(id))
+            .Where(id =>
+                _allowCivilResistanceAndTezctlanReputationChanges
+                || !ReputationExcludedFactionIds.Contains(id))
             .ToList();
         StartPlan plan = new StartPlan
         {
             Profile = _profileName,
             Seed = _seed,
             ElapsedDays = _profile.ElapsedDays,
-            TargetDate = spaceTime.Time
+            TargetDate = spaceTime.Time,
+            CivilResistanceAndTezctlanReputationChangesEnabled =
+                _allowCivilResistanceAndTezctlanReputationChanges
         };
 
         plan.HelpedFactions.AddRange(
