@@ -20,11 +20,13 @@ Clone and class counts are targets for the total starting roster, including the 
 CustomStart never removes a vanilla starting clone or class if the selected difficulty already
 provides more than a profile requests.
 
-Elapsed time is treated as a campaign-age prior, not merely a calendar change. The Mid profile is
-an established 2202 hard-difficulty campaign: most Magnum progression is complete and the stash is
-large, but it is biased toward accumulated common ammunition, medicine, repair supplies, ordinary
-weapons, and crafting materials rather than an implausible pile of rare components. The Late
-profile remains the effectively completed-campaign option, so a fourth preset is not needed yet.
+Each preset's elapsed time is treated as a campaign-age prior when calibrating its bundled budgets,
+not merely as a calendar label. It is not a live formula: changing `ElapsedDays` alone does not
+recalculate the other settings. The Mid profile is an established 2202 hard-difficulty campaign:
+most Magnum progression is complete and the stash is large, but it is biased toward accumulated
+common ammunition, medicine, repair supplies, ordinary weapons, and crafting materials rather
+than an implausible pile of rare components. The Late profile remains the effectively completed-
+campaign option, so a fourth preset is not needed yet.
 
 Early always includes the Monitoring, Conveyor, and Capsule department roots. Mid also guarantees
 the Classes, Genome, weapon-station, and armor-station roots. `TargetUpgradeCount` still controls
