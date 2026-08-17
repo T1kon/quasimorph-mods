@@ -1,0 +1,13 @@
+{
+  "UniqueModName": "PlanetScalingTextures",
+  "Assemblies": [
+    "PlanetScalingTextures.dll"
+  ],
+  "Dependencies": [
+    "PlanetScaling"
+  ],
+  "SteamTags": [
+    "Graphical",
+    "1.0"
+  ]
+}

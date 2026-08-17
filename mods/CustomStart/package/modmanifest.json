@@ -1,0 +1,11 @@
+{
+  "UniqueModName": "CustomStart",
+  "Assemblies": [
+    "CustomStart.dll"
+  ],
+  "Dependencies": [],
+  "SteamTags": [
+    "Gameplay",
+    "1.0"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "UniqueModName": "PlanetScaling",
+  "Assemblies": [
+    "PlanetScaling.dll"
+  ],
+  "Dependencies": [],
+  "SteamTags": [
+    "Graphics",
+    "1.0"
+  ]
+}

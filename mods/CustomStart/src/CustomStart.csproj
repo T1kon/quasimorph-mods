@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>CustomStart</AssemblyName>
+    <RootNamespace>CustomStart</RootNamespace>
+    <DebugType>portable</DebugType>
+    <GameManagedDir Condition="'$(GameManagedDir)' == ''">C:\Games\Steam\steamapps\common\Quasimorph\Quasimorph_Data\Managed</GameManagedDir>
+    <McmAssemblyPath Condition="'$(McmAssemblyPath)' == ''">$(GameManagedDir)\..\..\..\..\workshop\content\2059170\3469678797\MCM.dll</McmAssemblyPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp" HintPath="$(GameManagedDir)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(GameManagedDir)\0Harmony.dll" Private="false" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(GameManagedDir)\Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="MCM" HintPath="$(McmAssemblyPath)" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GameManagedDir)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CopyModAssembly" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="..\package" />
+    <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="..\package" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+  </Target>
+</Project>
