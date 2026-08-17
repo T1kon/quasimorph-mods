@@ -12,7 +12,7 @@ be handled automatically. See [AGENTS.md](AGENTS.md).
   beside planets in the 3D orbital view.
 - [Planet Scaling: Jupiter HD](mods/PlanetScalingTextures/README.md) — optional NASA/JPL Cassini
   textures for Jupiter in Planet Scaling's closer orbital view.
-- [CustomStart](mods/CustomStart/README.md) — creates configurable Early, Mid, and Late campaign
+- [CustomStart](mods/CustomStart/README.md) — creates configurable Early, EarlyMid, Mid, and Late campaign
   starts with correlated faction progress, world history, learned recipes, practical arsenal and
   supply stockpiles, Magnum upgrades, and optional in-game MCM controls.
 

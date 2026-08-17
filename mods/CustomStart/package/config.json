@@ -1,5 +1,5 @@
 {
-  "SchemaVersion": 4,
+  "SchemaVersion": 5,
   "Enabled": true,
   "ActiveProfile": "Early",
   "Seed": null,
@@ -125,6 +125,131 @@
           "ProductionRecipeUnlocks": 8,
           "MaximumAugmentationTech": 1,
           "MaximumImplantTech": 0,
+          "AllowQuasiItems": false
+        }
+      }
+    },
+    "EarlyMid": {
+      "ElapsedDays": 420,
+      "TechProgression": {
+        "WorldProgressLevel": 4.2,
+        "MinimumLevel": 3,
+        "MaximumLevel": 5,
+        "MaxActiveFactionSpread": 2,
+        "MaximumEconomyOffset": 0.75,
+        "EconomyOffsetPerDoubling": 0.45,
+        "RandomOffset": 0.2,
+        "MinimumProgressFraction": 0.05,
+        "MaximumProgressFraction": 0.85,
+        "PendingTechFraction": 0.05,
+        "ExactLevels": {}
+      },
+      "Factions": {
+        "HelpedFactions": {
+          "Mode": "Random",
+          "Count": 2,
+          "Ids": [],
+          "AllowedIds": [],
+          "ExcludedIds": []
+        },
+        "RivalFactions": {
+          "Mode": "Random",
+          "Count": 1,
+          "Ids": [],
+          "AllowedIds": [],
+          "ExcludedIds": []
+        },
+        "HelpedReputation": { "Minimum": 35, "Maximum": 60 },
+        "RivalReputation": { "Minimum": -35, "Maximum": -5 },
+        "HelpedTradePoints": { "Minimum": 1000, "Maximum": 3500 },
+        "PlayerStationTransfers": 2,
+        "BackgroundStationTransfers": 3,
+        "MinimumStationsPerFaction": 1,
+        "ProtectKnownStoryStations": true,
+        "AdditionalProtectedStationIds": [],
+        "StationPower": { "Minimum": 150, "Maximum": 600 },
+        "MinimumCaptureAgeDays": 14,
+        "MaximumCaptureAgeDays": 280
+      },
+      "Roster": {
+        "TargetCloneCount": 8,
+        "TargetClassCount": 7,
+        "GuaranteedCloneIds": [],
+        "GuaranteedClassIds": [],
+        "AllowedCloneIds": [],
+        "AllowedClassIds": [],
+        "ExcludedCloneIds": [],
+        "ExcludedClassIds": []
+      },
+      "Magnum": {
+        "TargetUpgradeCount": 32,
+        "GuaranteedUpgradeIds": [
+          "news_department",
+          "prodline_department",
+          "autonomcapsule_department",
+          "memdefrag_department",
+          "genomeeditor_department"
+        ],
+        "AllowedDepartments": [],
+        "ExcludedUpgradeIds": []
+      },
+      "Stash": {
+        "EquipmentRolls": 5,
+        "ConsumableRolls": 5,
+        "ChipRolls": 2,
+        "AmmoStacksPerWeapon": 2,
+        "GuaranteedItems": {},
+        "RewardSelection": {
+          "Enabled": true,
+          "MaxEquipmentCopiesPerItem": 1,
+          "MaxConsumableCopiesPerItem": 3,
+          "MaxChipCopiesPerItem": 1,
+          "DuplicateItemWeight": 0.15,
+          "DuplicateGroupWeight": 0.6,
+          "MissingGroupWeight": 2.5,
+          "FactionWeightExponent": 1.0,
+          "TechLevelWeight": 0.35,
+          "PriceWeight": 0.08,
+          "TopCandidateFraction": 0.4,
+          "MinimumCandidatePoolSize": 3
+        },
+        "MaterialStockpile": {
+          "Enabled": true,
+          "TargetDistinctItems": 20,
+          "MinimumRecipeUses": 3,
+          "MaximumUpgradeGrade": 7,
+          "MinimumCraftingStacks": 1,
+          "MaximumCraftingStacks": 4,
+          "MinimumUpgradeUnits": 1,
+          "MaximumUpgradeUnits": 4,
+          "FactionAvailabilityWeight": 1.35,
+          "DemandWeight": 0.7,
+          "TopCandidateFraction": 0.8,
+          "MaximumRareItems": 3,
+          "MinimumCommonLootOccurrences": 4,
+          "RareItemIds": [
+            "lens", "glass", "microelectronics_parts", "circuit_board", "capacitor_parts",
+            "transformer", "bulb", "electrical_parts_container", "engineering_parts_container"
+          ]
+        },
+        "RoleStockpile": {
+          "Enabled": true,
+          "WeaponItems": 10,
+          "ArmorSets": 3,
+          "CommonAmmoTypes": 6,
+          "SpecialAmmoTypes": 3,
+          "CommonAmmoStacks": 6,
+          "SpecialAmmoStacks": 2,
+          "MedicalItemTypes": 7,
+          "BasicMedicineStacks": 4,
+          "PremiumMedicineStacks": 2,
+          "RepairKitTypes": 4,
+          "RepairKitStacks": 3,
+          "AugmentationItems": 6,
+          "ImplantItems": 3,
+          "ProductionRecipeUnlocks": 24,
+          "MaximumAugmentationTech": 3,
+          "MaximumImplantTech": 4,
           "AllowQuasiItems": false
         }
       }

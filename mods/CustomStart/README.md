@@ -1,7 +1,7 @@
 # CustomStart
 
 CustomStart creates a new Quasimorph campaign that looks as though the world has already been
-running for a while. It ships with three profiles: `Early`, `Mid`, and `Late`.
+running for a while. It ships with four profiles: `Early`, `EarlyMid`, `Mid`, and `Late`.
 
 The mod changes only newly created games. Loading an existing save never arms the generator.
 CustomStart stores no custom save component, so a generated campaign remains loadable after the
@@ -13,6 +13,7 @@ that save.
 | Profile | Elapsed days | Faction tech | Total clones / classes | Magnum nodes | Weapons / armor sets | Ammo types (common + specialist) | Augments / implants | Learned recipes | Material types |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `Early` | 180 | 2–3, spread 1 | 5 / 5 | 8 | 4 / 1 | 5 + 1 | 3 / 0 | 8 | 12 |
+| `EarlyMid` | 420 | 3–5, spread 2 | 8 / 7 | 32 | 10 / 3 | 6 + 3 | 6 / 3 | 24 | 20 |
 | `Mid` | 800 | 5–7, spread 2 | 14 / 12 | 90 | 20 / 5 | 7 + 6 | 10 / 12 | 55 | 28 |
 | `Late` | 1960 | 9–10, spread 1 | all / all | all | 30 / 8 | 8 + 12 | 18 / 25 | 120 | 40 |
 
@@ -25,12 +26,13 @@ not merely as a calendar label. It is not a live formula: changing `ElapsedDays`
 recalculate the other settings. The Mid profile is an established 2202 hard-difficulty campaign:
 most Magnum progression is complete and the stash is large, but it is biased toward accumulated
 common ammunition, medicine, repair supplies, ordinary weapons, and crafting materials rather
-than an implausible pile of rare components. The Late profile remains the effectively completed-
-campaign option, so a fourth preset is not needed yet.
+than an implausible pile of rare components. `EarlyMid` fills the former progression gap with a
+developing 420-day campaign; Late remains the effectively completed-campaign option.
 
-Early always includes the Monitoring, Conveyor, and Capsule department roots. Mid also guarantees
-the Classes, Genome, weapon-station, and armor-station roots. `TargetUpgradeCount` still controls
-the total connected Magnum graph, including the guaranteed roots and any required path nodes.
+Early always includes the Monitoring, Conveyor, and Capsule department roots. EarlyMid adds the
+Classes and Genome roots; Mid additionally guarantees the weapon-station and armor-station roots.
+`TargetUpgradeCount` still controls the total connected Magnum graph, including the guaranteed
+roots and any required path nodes.
 
 The generator performs these operations in order:
 
@@ -181,7 +183,7 @@ keep:
 - Faction reward weight remains the base likelihood, with small tech-level and price modifiers.
 - Random selection is limited to the strongest fraction of the eligible pool.
 - Equipment and chips default to one copy per item. Consumable limits are two in `Early`, three
-  in `Mid`, and four in `Late`.
+  in `EarlyMid` and `Mid`, and four in `Late`.
 
 **Practical inventory history** models what a player keeps rather than another series of reward
 rolls:
@@ -196,8 +198,9 @@ rolls:
 - Medical stock strongly favors low-cost, frequently looted Medical-category items such as sorbent,
   bandages, and splints. Specialist medicine receives fewer stacks.
 - Repair kits are selected across different repair roles. Augmentations and implants use separate
-  stage caps; Early has basic cybernetics and no implants, Mid includes recreational/military
-  cybernetics and common implants, and Late may include quasi items.
+  stage caps; Early has basic cybernetics and no implants, EarlyMid introduces basic implants and
+  improved cybernetics, Mid includes recreational/military cybernetics and common implants, and
+  Late may include quasi items.
 
 **Recipe history** directly records production recipes already learned from past blueprint chips.
 The Mid default targets at least 55 learned recipes. Armor chips expand to the whole armor set and

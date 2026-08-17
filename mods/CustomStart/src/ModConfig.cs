@@ -7,7 +7,7 @@ namespace CustomStart;
 [Serializable]
 public sealed class ModConfig
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -80,6 +80,11 @@ public sealed class ModConfig
             {
                 MigrateEstablishedCampaignDefaults(config);
                 warn("Configuration was upgraded with guaranteed core Magnum departments and campaign-age-adjusted Mid/Late accumulation budgets.");
+            }
+
+            if (config.SchemaVersion < 5)
+            {
+                warn("Configuration was upgraded with the EarlyMid bridge profile.");
             }
 
             config.SchemaVersion = CurrentSchemaVersion;
@@ -274,6 +279,7 @@ public sealed class ModConfig
         return new Dictionary<string, StartProfile>(StringComparer.OrdinalIgnoreCase)
         {
             ["Early"] = StartProfile.CreateEarly(),
+            ["EarlyMid"] = StartProfile.CreateEarlyMid(),
             ["Mid"] = StartProfile.CreateMid(),
             ["Late"] = StartProfile.CreateLate()
         };
@@ -419,6 +425,57 @@ public sealed class StartProfile
                 RewardSelection = new RewardSelectionSettings { MaxConsumableCopiesPerItem = 3 },
                 MaterialStockpile = MaterialStockpileSettings.CreateMid(),
                 RoleStockpile = RoleStockpileSettings.CreateMid()
+            }
+        };
+    }
+
+    public static StartProfile CreateEarlyMid()
+    {
+        return new StartProfile
+        {
+            ElapsedDays = 420,
+            TechProgression = new TechProgressionSettings
+            {
+                WorldProgressLevel = 4.2,
+                MinimumLevel = 3,
+                MaximumLevel = 5,
+                MaxActiveFactionSpread = 2,
+                PendingTechFraction = 0.05
+            },
+            Factions = new FactionHistorySettings
+            {
+                HelpedFactions = FactionSelectionSettings.Random(2),
+                RivalFactions = FactionSelectionSettings.Random(1),
+                HelpedReputation = new IntRangeSettings(35, 60),
+                RivalReputation = new IntRangeSettings(-35, -5),
+                HelpedTradePoints = new IntRangeSettings(1000, 3500),
+                PlayerStationTransfers = 2,
+                BackgroundStationTransfers = 3,
+                StationPower = new IntRangeSettings(150, 600),
+                MaximumCaptureAgeDays = 280
+            },
+            Roster = new RosterSettings { TargetCloneCount = 8, TargetClassCount = 7 },
+            Magnum = new MagnumSettings
+            {
+                TargetUpgradeCount = 32,
+                GuaranteedUpgradeIds = new List<string>
+                {
+                    "news_department",
+                    "prodline_department",
+                    "autonomcapsule_department",
+                    "memdefrag_department",
+                    "genomeeditor_department"
+                }
+            },
+            Stash = new StashSettings
+            {
+                EquipmentRolls = 5,
+                ConsumableRolls = 5,
+                ChipRolls = 2,
+                AmmoStacksPerWeapon = 2,
+                RewardSelection = new RewardSelectionSettings { MaxConsumableCopiesPerItem = 3 },
+                MaterialStockpile = MaterialStockpileSettings.CreateEarlyMid(),
+                RoleStockpile = RoleStockpileSettings.CreateEarlyMid()
             }
         };
     }
@@ -752,11 +809,13 @@ public sealed class MaterialStockpileSettings
 
     public static MaterialStockpileSettings CreateForProfile(string profileName)
     {
-        return profileName.Equals("Mid", StringComparison.OrdinalIgnoreCase)
-            ? CreateMid()
-            : profileName.Equals("Late", StringComparison.OrdinalIgnoreCase)
-                ? CreateLate()
-                : CreateEarly();
+        return profileName.Equals("EarlyMid", StringComparison.OrdinalIgnoreCase)
+            ? CreateEarlyMid()
+            : profileName.Equals("Mid", StringComparison.OrdinalIgnoreCase)
+                ? CreateMid()
+                : profileName.Equals("Late", StringComparison.OrdinalIgnoreCase)
+                    ? CreateLate()
+                    : CreateEarly();
     }
 
     public static MaterialStockpileSettings CreateEarly()
@@ -764,6 +823,21 @@ public sealed class MaterialStockpileSettings
         return new MaterialStockpileSettings
         {
             TargetDistinctItems = 12
+        };
+    }
+
+    public static MaterialStockpileSettings CreateEarlyMid()
+    {
+        return new MaterialStockpileSettings
+        {
+            TargetDistinctItems = 20,
+            MinimumRecipeUses = 3,
+            MaximumUpgradeGrade = 7,
+            MinimumCraftingStacks = 1,
+            MaximumCraftingStacks = 4,
+            MinimumUpgradeUnits = 1,
+            MaximumUpgradeUnits = 4,
+            MaximumRareItems = 3
         };
     }
 
@@ -863,14 +937,39 @@ public sealed class RoleStockpileSettings
 
     public static RoleStockpileSettings CreateForProfile(string profileName)
     {
-        return profileName.Equals("Mid", StringComparison.OrdinalIgnoreCase)
-            ? CreateMid()
-            : profileName.Equals("Late", StringComparison.OrdinalIgnoreCase)
-                ? CreateLate()
-                : CreateEarly();
+        return profileName.Equals("EarlyMid", StringComparison.OrdinalIgnoreCase)
+            ? CreateEarlyMid()
+            : profileName.Equals("Mid", StringComparison.OrdinalIgnoreCase)
+                ? CreateMid()
+                : profileName.Equals("Late", StringComparison.OrdinalIgnoreCase)
+                    ? CreateLate()
+                    : CreateEarly();
     }
 
     public static RoleStockpileSettings CreateEarly() => new();
+
+    public static RoleStockpileSettings CreateEarlyMid()
+    {
+        return new RoleStockpileSettings
+        {
+            WeaponItems = 10,
+            ArmorSets = 3,
+            CommonAmmoTypes = 6,
+            SpecialAmmoTypes = 3,
+            CommonAmmoStacks = 6,
+            SpecialAmmoStacks = 2,
+            MedicalItemTypes = 7,
+            BasicMedicineStacks = 4,
+            PremiumMedicineStacks = 2,
+            RepairKitTypes = 4,
+            RepairKitStacks = 3,
+            AugmentationItems = 6,
+            ImplantItems = 3,
+            ProductionRecipeUnlocks = 24,
+            MaximumAugmentationTech = 3,
+            MaximumImplantTech = 4
+        };
+    }
 
     public static RoleStockpileSettings CreateMid()
     {

@@ -15,7 +15,7 @@ internal static class McmIntegration
     private const string LogPrefix = "[CustomStart] ";
     private const string RandomSeedKey = "__RandomSeed";
 
-    private static readonly string[] ProfileNames = { "Early", "Mid", "Late" };
+    private static readonly string[] ProfileNames = { "Early", "EarlyMid", "Mid", "Late" };
 
     private static ModConfig? _config;
     private static Action<ModConfig>? _save;
@@ -72,7 +72,7 @@ internal static class McmIntegration
                 "Early",
                 "Choose which campaign snapshot is used for the next new game.",
                 "Active profile",
-                new List<object> { "Early", "Mid", "Late" }),
+                new List<object> { "Early", "EarlyMid", "Mid", "Late" }),
             new ConfigValue(
                 RandomSeedKey,
                 !config.Seed.HasValue,
@@ -115,7 +115,9 @@ internal static class McmIntegration
         string profileName,
         StartProfile profile)
     {
-        string profileLabel = profileName;
+        string profileLabel = profileName.Equals("EarlyMid", StringComparison.Ordinal)
+            ? "Early-Mid"
+            : profileName;
         string worldHeader = profileLabel + " - World";
         string progressionHeader = profileLabel + " - Progression";
         string stashHeader = profileLabel + " - Stash";
@@ -470,10 +472,12 @@ internal static class McmIntegration
 
     private static StartProfile DefaultProfile(string profileName)
     {
-        return profileName.Equals("Mid", StringComparison.Ordinal)
-            ? StartProfile.CreateMid()
-            : profileName.Equals("Late", StringComparison.Ordinal)
-                ? StartProfile.CreateLate()
-                : StartProfile.CreateEarly();
+        return profileName.Equals("EarlyMid", StringComparison.Ordinal)
+            ? StartProfile.CreateEarlyMid()
+            : profileName.Equals("Mid", StringComparison.Ordinal)
+                ? StartProfile.CreateMid()
+                : profileName.Equals("Late", StringComparison.Ordinal)
+                    ? StartProfile.CreateLate()
+                    : StartProfile.CreateEarly();
     }
 }
