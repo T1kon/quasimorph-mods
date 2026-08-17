@@ -38,6 +38,12 @@ internal sealed class StartPlanner
         "Vasa"
     };
 
+    private static readonly HashSet<string> ReputationExcludedFactionIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CResistance",
+        "Tezctlan"
+    };
+
     private const string NameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890";
 
     private readonly State _state;
@@ -66,6 +72,9 @@ internal sealed class StartPlanner
     {
         SpaceTime spaceTime = Require<SpaceTime>();
         List<string> eligibleFactionIds = GetEligibleFactionIds();
+        List<string> reputationFactionIds = eligibleFactionIds
+            .Where(id => !ReputationExcludedFactionIds.Contains(id))
+            .ToList();
         StartPlan plan = new StartPlan
         {
             Profile = _profileName,
@@ -75,11 +84,11 @@ internal sealed class StartPlanner
         };
 
         plan.HelpedFactions.AddRange(
-            SelectFactions(_profile.Factions.HelpedFactions, eligibleFactionIds, new HashSet<string>(), plan));
+            SelectFactions(_profile.Factions.HelpedFactions, reputationFactionIds, new HashSet<string>(), plan));
         plan.RivalFactions.AddRange(
             SelectFactions(
                 _profile.Factions.RivalFactions,
-                eligibleFactionIds,
+                reputationFactionIds,
                 new HashSet<string>(plan.HelpedFactions, StringComparer.OrdinalIgnoreCase),
                 plan));
 

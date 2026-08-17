@@ -7,13 +7,13 @@ namespace CustomStart;
 [Serializable]
 public sealed class ModConfig
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
     public bool Enabled { get; set; } = true;
 
-    public string ActiveProfile { get; set; } = "EarlyPlus";
+    public string ActiveProfile { get; set; } = "Early";
 
     public int? Seed { get; set; }
 
@@ -42,6 +42,7 @@ public sealed class ModConfig
         }
 
         config.Profiles = normalizedProfiles;
+        MigrateEarlyProfileName(config, warn);
 
         foreach (KeyValuePair<string, StartProfile> defaultProfile in CreateDefaultProfiles())
         {
@@ -75,13 +76,19 @@ public sealed class ModConfig
                 warn("Configuration was upgraded with stage-specific arsenal, supply, augmentation, and recipe-history budgets.");
             }
 
+            if (config.SchemaVersion < 4)
+            {
+                MigrateEstablishedCampaignDefaults(config);
+                warn("Configuration was upgraded with guaranteed core Magnum departments and campaign-age-adjusted Mid/Late accumulation budgets.");
+            }
+
             config.SchemaVersion = CurrentSchemaVersion;
         }
 
         if (string.IsNullOrWhiteSpace(config.ActiveProfile) || !config.Profiles.ContainsKey(config.ActiveProfile))
         {
-            warn($"Active profile '{config.ActiveProfile}' does not exist; using EarlyPlus.");
-            config.ActiveProfile = "EarlyPlus";
+            warn($"Active profile '{config.ActiveProfile}' does not exist; using Early.");
+            config.ActiveProfile = "Early";
         }
         else
         {
@@ -92,16 +99,37 @@ public sealed class ModConfig
         return config;
     }
 
+    private static void MigrateEarlyProfileName(ModConfig config, Action<string> warn)
+    {
+        if (string.Equals(config.ActiveProfile, "EarlyPlus", StringComparison.OrdinalIgnoreCase))
+        {
+            config.ActiveProfile = "Early";
+        }
+
+        if (!config.Profiles.TryGetValue("EarlyPlus", out StartProfile legacyProfile))
+        {
+            return;
+        }
+
+        if (!config.Profiles.ContainsKey("Early"))
+        {
+            config.Profiles.Add("Early", legacyProfile);
+        }
+
+        config.Profiles.Remove("EarlyPlus");
+        warn("Profile 'EarlyPlus' was renamed to 'Early'.");
+    }
+
     private static void MigrateLegacyStashDefaults(ModConfig config)
     {
-        MigrateLegacyStashProfile(config, "EarlyPlus", 6, 12, 1, 4, 6, 1);
+        MigrateLegacyStashProfile(config, "Early", 6, 12, 1, 4, 6, 1);
         MigrateLegacyStashProfile(config, "Mid", 20, 35, 5, 10, 12, 3);
         MigrateLegacyStashProfile(config, "Late", 40, 70, 12, 18, 20, 6);
     }
 
     private static void MigrateRoleStockpileDefaults(ModConfig config)
     {
-        MigrateRoleStockpileProfile(config, "EarlyPlus", 4, 6, 1, 18, 3, 4, 1, 12);
+        MigrateRoleStockpileProfile(config, "Early", 4, 6, 1, 18, 3, 4, 1, 12);
         MigrateRoleStockpileProfile(config, "Mid", 10, 12, 3, 32, 6, 6, 2, 16);
         MigrateRoleStockpileProfile(config, "Late", 18, 20, 6, 48, 10, 10, 4, 24);
     }
@@ -161,6 +189,81 @@ public sealed class ModConfig
         profile.Stash.ChipRolls = newChips;
     }
 
+    private static void MigrateEstablishedCampaignDefaults(ModConfig config)
+    {
+        if (config.Profiles.TryGetValue("Early", out StartProfile early))
+        {
+            EnsureGuaranteedUpgradeIds(early.Magnum, StartProfile.CreateEarly().Magnum.GuaranteedUpgradeIds);
+        }
+
+        if (config.Profiles.TryGetValue("Mid", out StartProfile mid))
+        {
+            EnsureGuaranteedUpgradeIds(mid.Magnum, StartProfile.CreateMid().Magnum.GuaranteedUpgradeIds);
+            mid.Roster.TargetCloneCount = MigrateDefaultValue(mid.Roster.TargetCloneCount, 10, 14);
+            mid.Roster.TargetClassCount = MigrateDefaultValue(mid.Roster.TargetClassCount, 8, 12);
+            mid.Magnum.TargetUpgradeCount = MigrateDefaultValue(mid.Magnum.TargetUpgradeCount, 40, 90);
+            mid.Stash.EquipmentRolls = MigrateDefaultValue(mid.Stash.EquipmentRolls, 6, 8);
+            mid.Stash.ConsumableRolls = MigrateDefaultValue(mid.Stash.ConsumableRolls, 6, 8);
+            mid.Stash.ChipRolls = MigrateDefaultValue(mid.Stash.ChipRolls, 2, 3);
+            MigrateMaterialStockpile(mid.Stash.MaterialStockpile, false);
+            MigrateRoleStockpile(mid.Stash.RoleStockpile, false);
+        }
+
+        if (config.Profiles.TryGetValue("Late", out StartProfile late))
+        {
+            late.Stash.EquipmentRolls = MigrateDefaultValue(late.Stash.EquipmentRolls, 10, 14);
+            late.Stash.ConsumableRolls = MigrateDefaultValue(late.Stash.ConsumableRolls, 10, 14);
+            late.Stash.ChipRolls = MigrateDefaultValue(late.Stash.ChipRolls, 4, 6);
+            MigrateMaterialStockpile(late.Stash.MaterialStockpile, true);
+            MigrateRoleStockpile(late.Stash.RoleStockpile, true);
+        }
+    }
+
+    private static void EnsureGuaranteedUpgradeIds(MagnumSettings settings, IEnumerable<string> requiredIds)
+    {
+        HashSet<string> existing = new(settings.GuaranteedUpgradeIds, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> excluded = new(settings.ExcludedUpgradeIds, StringComparer.OrdinalIgnoreCase);
+        foreach (string id in requiredIds)
+        {
+            if (!excluded.Contains(id) && existing.Add(id))
+            {
+                settings.GuaranteedUpgradeIds.Add(id);
+            }
+        }
+    }
+
+    private static void MigrateMaterialStockpile(MaterialStockpileSettings settings, bool late)
+    {
+        settings.TargetDistinctItems = MigrateDefaultValue(settings.TargetDistinctItems, late ? 24 : 16, late ? 40 : 28);
+        settings.MinimumCraftingStacks = MigrateDefaultValue(settings.MinimumCraftingStacks, late ? 2 : 1, late ? 3 : 2);
+        settings.MaximumCraftingStacks = MigrateDefaultValue(settings.MaximumCraftingStacks, late ? 5 : 3, late ? 8 : 6);
+        settings.MaximumUpgradeUnits = MigrateDefaultValue(settings.MaximumUpgradeUnits, late ? 8 : 4, late ? 12 : 6);
+        settings.MaximumRareItems = MigrateDefaultValue(settings.MaximumRareItems, late ? 8 : 4, late ? 10 : 5);
+    }
+
+    private static void MigrateRoleStockpile(RoleStockpileSettings settings, bool late)
+    {
+        settings.WeaponItems = MigrateDefaultValue(settings.WeaponItems, late ? 18 : 10, late ? 30 : 20);
+        settings.ArmorSets = MigrateDefaultValue(settings.ArmorSets, late ? 5 : 3, late ? 8 : 5);
+        settings.CommonAmmoTypes = MigrateDefaultValue(settings.CommonAmmoTypes, late ? 7 : 6, late ? 8 : 7);
+        settings.SpecialAmmoTypes = MigrateDefaultValue(settings.SpecialAmmoTypes, late ? 8 : 4, late ? 12 : 6);
+        settings.CommonAmmoStacks = MigrateDefaultValue(settings.CommonAmmoStacks, late ? 10 : 6, late ? 14 : 10);
+        settings.SpecialAmmoStacks = MigrateDefaultValue(settings.SpecialAmmoStacks, late ? 4 : 2, late ? 6 : 3);
+        settings.MedicalItemTypes = MigrateDefaultValue(settings.MedicalItemTypes, late ? 10 : 7, late ? 14 : 10);
+        settings.BasicMedicineStacks = MigrateDefaultValue(settings.BasicMedicineStacks, late ? 6 : 4, late ? 8 : 6);
+        settings.PremiumMedicineStacks = MigrateDefaultValue(settings.PremiumMedicineStacks, late ? 4 : 2, late ? 5 : 3);
+        settings.RepairKitTypes = MigrateDefaultValue(settings.RepairKitTypes, late ? 8 : 4, late ? 10 : 7);
+        settings.RepairKitStacks = MigrateDefaultValue(settings.RepairKitStacks, late ? 5 : 3, late ? 7 : 5);
+        settings.AugmentationItems = MigrateDefaultValue(settings.AugmentationItems, late ? 12 : 6, late ? 18 : 10);
+        settings.ImplantItems = MigrateDefaultValue(settings.ImplantItems, late ? 15 : 6, late ? 25 : 12);
+        settings.ProductionRecipeUnlocks = MigrateDefaultValue(settings.ProductionRecipeUnlocks, late ? 70 : 26, late ? 120 : 55);
+    }
+
+    private static int MigrateDefaultValue(int value, int oldDefault, int newDefault)
+    {
+        return value == oldDefault ? newDefault : value;
+    }
+
     public StartProfile GetActiveProfile()
     {
         return Profiles[ActiveProfile];
@@ -170,7 +273,7 @@ public sealed class ModConfig
     {
         return new Dictionary<string, StartProfile>(StringComparer.OrdinalIgnoreCase)
         {
-            ["EarlyPlus"] = StartProfile.CreateEarlyPlus(),
+            ["Early"] = StartProfile.CreateEarly(),
             ["Mid"] = StartProfile.CreateMid(),
             ["Late"] = StartProfile.CreateLate()
         };
@@ -218,7 +321,7 @@ public sealed class StartProfile
         }
     }
 
-    public static StartProfile CreateEarlyPlus()
+    public static StartProfile CreateEarly()
     {
         return new StartProfile
         {
@@ -244,7 +347,16 @@ public sealed class StartProfile
                 MaximumCaptureAgeDays = 120
             },
             Roster = new RosterSettings { TargetCloneCount = 5, TargetClassCount = 5 },
-            Magnum = new MagnumSettings { TargetUpgradeCount = 8 },
+            Magnum = new MagnumSettings
+            {
+                TargetUpgradeCount = 8,
+                GuaranteedUpgradeIds = new List<string>
+                {
+                    "news_department",
+                    "prodline_department",
+                    "autonomcapsule_department"
+                }
+            },
             Stash = new StashSettings
             {
                 EquipmentRolls = 3,
@@ -252,8 +364,8 @@ public sealed class StartProfile
                 ChipRolls = 1,
                 AmmoStacksPerWeapon = 1,
                 RewardSelection = new RewardSelectionSettings { MaxConsumableCopiesPerItem = 2 },
-                MaterialStockpile = MaterialStockpileSettings.CreateEarlyPlus(),
-                RoleStockpile = RoleStockpileSettings.CreateEarlyPlus()
+                MaterialStockpile = MaterialStockpileSettings.CreateEarly(),
+                RoleStockpile = RoleStockpileSettings.CreateEarly()
             }
         };
     }
@@ -283,13 +395,26 @@ public sealed class StartProfile
                 StationPower = new IntRangeSettings(250, 900),
                 MaximumCaptureAgeDays = 500
             },
-            Roster = new RosterSettings { TargetCloneCount = 10, TargetClassCount = 8 },
-            Magnum = new MagnumSettings { TargetUpgradeCount = 40 },
+            Roster = new RosterSettings { TargetCloneCount = 14, TargetClassCount = 12 },
+            Magnum = new MagnumSettings
+            {
+                TargetUpgradeCount = 90,
+                GuaranteedUpgradeIds = new List<string>
+                {
+                    "news_department",
+                    "prodline_department",
+                    "autonomcapsule_department",
+                    "memdefrag_department",
+                    "genomeeditor_department",
+                    "weaponstation_department",
+                    "armorstation_department"
+                }
+            },
             Stash = new StashSettings
             {
-                EquipmentRolls = 6,
-                ConsumableRolls = 6,
-                ChipRolls = 2,
+                EquipmentRolls = 8,
+                ConsumableRolls = 8,
+                ChipRolls = 3,
                 AmmoStacksPerWeapon = 2,
                 RewardSelection = new RewardSelectionSettings { MaxConsumableCopiesPerItem = 3 },
                 MaterialStockpile = MaterialStockpileSettings.CreateMid(),
@@ -327,9 +452,9 @@ public sealed class StartProfile
             Magnum = new MagnumSettings { TargetUpgradeCount = -1 },
             Stash = new StashSettings
             {
-                EquipmentRolls = 10,
-                ConsumableRolls = 10,
-                ChipRolls = 4,
+                EquipmentRolls = 14,
+                ConsumableRolls = 14,
+                ChipRolls = 6,
                 AmmoStacksPerWeapon = 3,
                 RewardSelection = new RewardSelectionSettings { MaxConsumableCopiesPerItem = 4 },
                 MaterialStockpile = MaterialStockpileSettings.CreateLate(),
@@ -631,10 +756,10 @@ public sealed class MaterialStockpileSettings
             ? CreateMid()
             : profileName.Equals("Late", StringComparison.OrdinalIgnoreCase)
                 ? CreateLate()
-                : CreateEarlyPlus();
+                : CreateEarly();
     }
 
-    public static MaterialStockpileSettings CreateEarlyPlus()
+    public static MaterialStockpileSettings CreateEarly()
     {
         return new MaterialStockpileSettings
         {
@@ -646,14 +771,14 @@ public sealed class MaterialStockpileSettings
     {
         return new MaterialStockpileSettings
         {
-            TargetDistinctItems = 16,
+            TargetDistinctItems = 28,
             MinimumRecipeUses = 3,
             MaximumUpgradeGrade = 12,
-            MinimumCraftingStacks = 1,
-            MaximumCraftingStacks = 3,
+            MinimumCraftingStacks = 2,
+            MaximumCraftingStacks = 6,
             MinimumUpgradeUnits = 2,
-            MaximumUpgradeUnits = 4,
-            MaximumRareItems = 4
+            MaximumUpgradeUnits = 6,
+            MaximumRareItems = 5
         };
     }
 
@@ -661,14 +786,14 @@ public sealed class MaterialStockpileSettings
     {
         return new MaterialStockpileSettings
         {
-            TargetDistinctItems = 24,
+            TargetDistinctItems = 40,
             MinimumRecipeUses = 1,
             MaximumUpgradeGrade = -1,
-            MinimumCraftingStacks = 2,
-            MaximumCraftingStacks = 5,
+            MinimumCraftingStacks = 3,
+            MaximumCraftingStacks = 8,
             MinimumUpgradeUnits = 3,
-            MaximumUpgradeUnits = 8,
-            MaximumRareItems = 8
+            MaximumUpgradeUnits = 12,
+            MaximumRareItems = 10
         };
     }
 
@@ -742,29 +867,29 @@ public sealed class RoleStockpileSettings
             ? CreateMid()
             : profileName.Equals("Late", StringComparison.OrdinalIgnoreCase)
                 ? CreateLate()
-                : CreateEarlyPlus();
+                : CreateEarly();
     }
 
-    public static RoleStockpileSettings CreateEarlyPlus() => new();
+    public static RoleStockpileSettings CreateEarly() => new();
 
     public static RoleStockpileSettings CreateMid()
     {
         return new RoleStockpileSettings
         {
-            WeaponItems = 10,
-            ArmorSets = 3,
-            CommonAmmoTypes = 6,
-            SpecialAmmoTypes = 4,
-            CommonAmmoStacks = 6,
-            SpecialAmmoStacks = 2,
-            MedicalItemTypes = 7,
-            BasicMedicineStacks = 4,
-            PremiumMedicineStacks = 2,
-            RepairKitTypes = 4,
-            RepairKitStacks = 3,
-            AugmentationItems = 6,
-            ImplantItems = 6,
-            ProductionRecipeUnlocks = 26,
+            WeaponItems = 20,
+            ArmorSets = 5,
+            CommonAmmoTypes = 7,
+            SpecialAmmoTypes = 6,
+            CommonAmmoStacks = 10,
+            SpecialAmmoStacks = 3,
+            MedicalItemTypes = 10,
+            BasicMedicineStacks = 6,
+            PremiumMedicineStacks = 3,
+            RepairKitTypes = 7,
+            RepairKitStacks = 5,
+            AugmentationItems = 10,
+            ImplantItems = 12,
+            ProductionRecipeUnlocks = 55,
             MaximumAugmentationTech = 4,
             MaximumImplantTech = 5
         };
@@ -774,20 +899,20 @@ public sealed class RoleStockpileSettings
     {
         return new RoleStockpileSettings
         {
-            WeaponItems = 18,
-            ArmorSets = 5,
-            CommonAmmoTypes = 7,
-            SpecialAmmoTypes = 8,
-            CommonAmmoStacks = 10,
-            SpecialAmmoStacks = 4,
-            MedicalItemTypes = 10,
-            BasicMedicineStacks = 6,
-            PremiumMedicineStacks = 4,
-            RepairKitTypes = 8,
-            RepairKitStacks = 5,
-            AugmentationItems = 12,
-            ImplantItems = 15,
-            ProductionRecipeUnlocks = 70,
+            WeaponItems = 30,
+            ArmorSets = 8,
+            CommonAmmoTypes = 8,
+            SpecialAmmoTypes = 12,
+            CommonAmmoStacks = 14,
+            SpecialAmmoStacks = 6,
+            MedicalItemTypes = 14,
+            BasicMedicineStacks = 8,
+            PremiumMedicineStacks = 5,
+            RepairKitTypes = 10,
+            RepairKitStacks = 7,
+            AugmentationItems = 18,
+            ImplantItems = 25,
+            ProductionRecipeUnlocks = 120,
             MaximumAugmentationTech = 10,
             MaximumImplantTech = 10,
             AllowQuasiItems = true

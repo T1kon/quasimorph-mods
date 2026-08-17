@@ -13,8 +13,9 @@ namespace CustomStart;
 internal static class McmIntegration
 {
     private const string LogPrefix = "[CustomStart] ";
+    private const string RandomSeedKey = "__RandomSeed";
 
-    private static readonly string[] ProfileNames = { "EarlyPlus", "Mid", "Late" };
+    private static readonly string[] ProfileNames = { "Early", "Mid", "Late" };
 
     private static ModConfig? _config;
     private static Action<ModConfig>? _save;
@@ -68,17 +69,26 @@ internal static class McmIntegration
                 nameof(ModConfig.ActiveProfile),
                 config.ActiveProfile,
                 "General",
-                "EarlyPlus",
+                "Early",
                 "Choose which campaign snapshot is used for the next new game.",
                 "Active profile",
-                new List<object> { "EarlyPlus", "Mid", "Late" }),
-            new TextBoxConfig(
-                nameof(ModConfig.Seed),
-                config.Seed?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                new List<object> { "Early", "Mid", "Late" }),
+            new ConfigValue(
+                RandomSeedKey,
+                !config.Seed.HasValue,
                 "General",
-                string.Empty,
-                "Leave empty for a random seed, or enter a signed whole number for reproducible generation.",
-                "Seed (empty = random)"),
+                true,
+                "Generate a fresh random seed for every new campaign. Disable this to use the seed value below.",
+                "Random seed"),
+            CreateRange(
+                nameof(ModConfig.Seed),
+                config.Seed ?? 12345,
+                12345,
+                -10_000_000,
+                10_000_000,
+                "General",
+                "A reproducible signed seed. This is used only when Random seed is disabled; JSON accepts the full Int32 range.",
+                "Seed value"),
             new ConfigValue(
                 nameof(ModConfig.WriteReport),
                 config.WriteReport,
@@ -105,9 +115,7 @@ internal static class McmIntegration
         string profileName,
         StartProfile profile)
     {
-        string profileLabel = profileName.Equals("EarlyPlus", StringComparison.Ordinal)
-            ? "Early+"
-            : profileName;
+        string profileLabel = profileName;
         string worldHeader = profileLabel + " - World";
         string progressionHeader = profileLabel + " - Progression";
         string stashHeader = profileLabel + " - Stash";
@@ -378,21 +386,10 @@ internal static class McmIntegration
         ModConfig config = _config ?? throw new InvalidOperationException("MCM configuration was not initialized.");
         try
         {
-            string seedText = Convert.ToString(values[nameof(ModConfig.Seed)], CultureInfo.InvariantCulture)?.Trim()
-                              ?? string.Empty;
-            int? seed = null;
-            if (!string.IsNullOrEmpty(seedText)
-                && !seedText.Equals("random", StringComparison.OrdinalIgnoreCase)
-                && !int.TryParse(seedText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedSeed))
-            {
-                feedbackMessage = "Seed must be empty, 'random', or a signed whole number.";
-                return false;
-            }
-            else if (!string.IsNullOrEmpty(seedText)
-                     && !seedText.Equals("random", StringComparison.OrdinalIgnoreCase))
-            {
-                seed = int.Parse(seedText, NumberStyles.Integer, CultureInfo.InvariantCulture);
-            }
+            bool useRandomSeed = Convert.ToBoolean(values[RandomSeedKey], CultureInfo.InvariantCulture);
+            int? seed = useRandomSeed
+                ? null
+                : GetInt(values, nameof(ModConfig.Seed));
 
             string activeProfile = Convert.ToString(
                 values[nameof(ModConfig.ActiveProfile)],
@@ -477,6 +474,6 @@ internal static class McmIntegration
             ? StartProfile.CreateMid()
             : profileName.Equals("Late", StringComparison.Ordinal)
                 ? StartProfile.CreateLate()
-                : StartProfile.CreateEarlyPlus();
+                : StartProfile.CreateEarly();
     }
 }

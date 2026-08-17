@@ -1,7 +1,7 @@
 # CustomStart
 
 CustomStart creates a new Quasimorph campaign that looks as though the world has already been
-running for a while. It ships with three profiles: `EarlyPlus`, `Mid`, and `Late`.
+running for a while. It ships with three profiles: `Early`, `Mid`, and `Late`.
 
 The mod changes only newly created games. Loading an existing save never arms the generator.
 CustomStart stores no custom save component, so a generated campaign remains loadable after the
@@ -12,13 +12,23 @@ that save.
 
 | Profile | Elapsed days | Faction tech | Total clones / classes | Magnum nodes | Weapons / armor sets | Ammo types (common + specialist) | Augments / implants | Learned recipes | Material types |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `EarlyPlus` | 180 | 2–3, spread 1 | 5 / 5 | 8 | 4 / 1 | 5 + 1 | 3 / 0 | 8 | 12 |
-| `Mid` | 800 | 5–7, spread 2 | 10 / 8 | 40 | 10 / 3 | 6 + 4 | 6 / 6 | 26 | 16 |
-| `Late` | 1960 | 9–10, spread 1 | all / all | all | 18 / 5 | 7 + 8 | 12 / 15 | 70 | 24 |
+| `Early` | 180 | 2–3, spread 1 | 5 / 5 | 8 | 4 / 1 | 5 + 1 | 3 / 0 | 8 | 12 |
+| `Mid` | 800 | 5–7, spread 2 | 14 / 12 | 90 | 20 / 5 | 7 + 6 | 10 / 12 | 55 | 28 |
+| `Late` | 1960 | 9–10, spread 1 | all / all | all | 30 / 8 | 8 + 12 | 18 / 25 | 120 | 40 |
 
 Clone and class counts are targets for the total starting roster, including the vanilla grants.
 CustomStart never removes a vanilla starting clone or class if the selected difficulty already
 provides more than a profile requests.
+
+Elapsed time is treated as a campaign-age prior, not merely a calendar change. The Mid profile is
+an established 2202 hard-difficulty campaign: most Magnum progression is complete and the stash is
+large, but it is biased toward accumulated common ammunition, medicine, repair supplies, ordinary
+weapons, and crafting materials rather than an implausible pile of rare components. The Late
+profile remains the effectively completed-campaign option, so a fourth preset is not needed yet.
+
+Early always includes the Monitoring, Conveyor, and Capsule department roots. Mid also guarantees
+the Classes, Genome, weapon-station, and armor-station roots. `TargetUpgradeCount` still controls
+the total connected Magnum graph, including the guaranteed roots and any required path nodes.
 
 The generator performs these operations in order:
 
@@ -77,6 +87,10 @@ The in-game screen exposes the settings most players are likely to change:
 - Common-ammunition and repair stack sizes, material-stockpile size, rare-material cap, common
   material stacks, upgrade-material units, and upgrade-material tier.
 
+The current MCM build does not render its advertised free-form text-box control, so CustomStart
+uses a supported numeric seed field plus a **Random seed** toggle. The in-game numeric field covers
+`-10000000` through `10000000`; the JSON setting still accepts any signed 32-bit integer.
+
 MCM writes the canonical JSON file. Changes apply to the next genuinely new campaign; they do not
 rewrite an existing save. Exact faction IDs, roster allow/exclude lists, guaranteed IDs, economy
 model parameters, and detailed weighting remain advanced JSON settings.
@@ -122,7 +136,9 @@ Faction selectors support two modes. An explicit selection uses `Ids`:
 ```
 
 A random selection uses `Count`; `AllowedIds` limits its pool and `ExcludedIds` removes choices.
-The helped and rival sets are always disjoint.
+The helped and rival sets are always disjoint. Civil Resistance (`CResistance`) and Tezctlan are
+never selected for reputation history, although they still receive normal faction tech and world
+progression.
 
 Roster restrictions apply to additional grants. Guaranteed IDs are attempted first, allowed lists
 limit the random grant pool, and excluded lists remove entries:
@@ -162,7 +178,7 @@ keep:
 - Repeated item IDs receive a strong penalty; repeated role groups receive a smaller penalty.
 - Faction reward weight remains the base likelihood, with small tech-level and price modifiers.
 - Random selection is limited to the strongest fraction of the eligible pool.
-- Equipment and chips default to one copy per item. Consumable limits are two in `EarlyPlus`, three
+- Equipment and chips default to one copy per item. Consumable limits are two in `Early`, three
   in `Mid`, and four in `Late`.
 
 **Practical inventory history** models what a player keeps rather than another series of reward
@@ -178,11 +194,11 @@ rolls:
 - Medical stock strongly favors low-cost, frequently looted Medical-category items such as sorbent,
   bandages, and splints. Specialist medicine receives fewer stacks.
 - Repair kits are selected across different repair roles. Augmentations and implants use separate
-  stage caps; Early+ has basic cybernetics and no implants, Mid includes recreational/military
+  stage caps; Early has basic cybernetics and no implants, Mid includes recreational/military
   cybernetics and common implants, and Late may include quasi items.
 
 **Recipe history** directly records production recipes already learned from past blueprint chips.
-The Mid default targets at least 26 learned recipes. Armor chips expand to the whole armor set and
+The Mid default targets at least 55 learned recipes. Armor chips expand to the whole armor set and
 weapon recipes include their default ammunition when those recipes exist, matching the normal game
 unlock behavior. Physical unopened chip rewards can still appear separately.
 
@@ -323,7 +339,7 @@ Repository automation does not launch or drive Quasimorph. To check a new build:
 7. Confirm the campaign date, faction screen, roster/classes, Magnum tree, and stash agree with the
    report. For Mid, check that common ammo and basic medicine are visibly bulkier than specialist
    supplies, armor appears in complete sets, repair/augmentation/implant reserves are non-empty,
-   `ProductionRecipeUnlocks` contains at least 26 entries, and no item ID contains `implicted_`.
+   `ProductionRecipeUnlocks` contains at least 55 entries, and no item ID contains `implicted_`.
    Review `AcquisitionBasis`, `SelectionGroup`, and `SelectionScore` when a category looks wrong.
 
 For diagnosis, provide `last-start-report.json` and the `[CustomStart]` section plus any following
