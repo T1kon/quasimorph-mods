@@ -9,7 +9,8 @@ The mod is deliberately visual-only:
 - local light range and intensity are reduced with the model, preventing overexposure;
 - attached particle effects, including the travelling exhaust, follow the reduced ship hierarchy
   without increasing their emission density;
-- the ship-upgrade overview camera follows the reduced model while individual module cameras remain unchanged;
+- the ship-upgrade overview camera follows the reduced model;
+- individual module cameras retain their vanilla distances, while affected aim offsets follow the reduced ship;
 - planet sizes, orbit paths, travel time, click targets, UI anchors, and save data are unchanged;
 - individual ship-module cameras retain their vanilla distances.
 

@@ -126,8 +126,38 @@ public static class Plugin
         }
 
         visualRoot.localScale *= _config.ShipVisualScale;
+        ScaleModuleCameraOffsets(visualRoot);
         ScaleLocalLights(visualRoot);
         ScaleParticleEffects(visualRoot);
+    }
+
+    private static void ScaleModuleCameraOffsets(Transform visualRoot)
+    {
+        foreach (CinemachineVirtualCamera camera in
+                 visualRoot.GetComponentsInChildren<CinemachineVirtualCamera>(includeInactive: true))
+        {
+            if (!RequiresScaledModuleOffset(camera.name))
+            {
+                continue;
+            }
+
+            CinemachineCameraOffset? offset = camera.GetComponent<CinemachineCameraOffset>();
+            if (offset == null)
+            {
+                Debug.LogWarning(LogPrefix + $"Module camera '{camera.name}' has no camera offset component.");
+                continue;
+            }
+
+            offset.m_Offset *= _config.ShipVisualScale;
+        }
+    }
+
+    private static bool RequiresScaledModuleOffset(string cameraName)
+    {
+        return cameraName == "research"
+            || cameraName == "hangar"
+            || cameraName == "cloning"
+            || cameraName == "supply";
     }
 
     private static void ScaleLocalLights(Transform visualRoot)
