@@ -80,7 +80,8 @@ internal sealed class StartPlanValidator
                 throw new InvalidOperationException($"Max-tech faction '{factionPlan.Id}' has residual tech experience.");
             }
 
-            if (Data.TechLevels.TryGetValue(factionPlan.TechLevel, out TechLevelRecord levelRecord)
+            if (factionPlan.TechLevel < Data.Global.MaxTechLevel
+                && Data.TechLevels.TryGetValue(factionPlan.TechLevel, out TechLevelRecord levelRecord)
                 && factionPlan.TechExp >= levelRecord.ExperienceToLevelUp)
             {
                 throw new InvalidOperationException($"Faction '{factionPlan.Id}' has enough experience to exceed its planned tech level.");
