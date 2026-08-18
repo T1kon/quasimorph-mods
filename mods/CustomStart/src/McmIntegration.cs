@@ -555,6 +555,20 @@ internal static class McmIntegration
             CultureInfo.InvariantCulture) ?? string.Empty;
         string profilePrefix = profileName + ".";
 
+        // MCM builds widgets from Value, not UnstoredValue. Promote unsaved values only for this
+        // render pass so the rebuilt selector and controls match the edits that remain pending.
+        List<McmRenderedValueSnapshot> renderedValues = new();
+        foreach (IConfigValue configValue in originalValues.OfType<IConfigValue>())
+        {
+            if (configValue.UnstoredValue == null)
+            {
+                continue;
+            }
+
+            renderedValues.Add(new McmRenderedValueSnapshot(configValue, configValue.Value));
+            configValue.Value = configValue.UnstoredValue;
+        }
+
         data.Clear();
         foreach (object value in originalValues)
         {
@@ -566,7 +580,7 @@ internal static class McmIntegration
             }
         }
 
-        return new McmDataSnapshot(data, originalValues);
+        return new McmDataSnapshot(data, originalValues, renderedValues);
     }
 
     internal static void RestoreMcmData(McmDataSnapshot? snapshot)
@@ -580,6 +594,11 @@ internal static class McmIntegration
         foreach (object value in snapshot.OriginalValues)
         {
             snapshot.Data.Add(value);
+        }
+
+        foreach (McmRenderedValueSnapshot renderedValue in snapshot.RenderedValues)
+        {
+            renderedValue.Config.Value = renderedValue.OriginalValue;
         }
     }
 
@@ -624,15 +643,34 @@ internal static class McmIntegration
 
 internal sealed class McmDataSnapshot
 {
-    public McmDataSnapshot(IList data, object[] originalValues)
+    public McmDataSnapshot(
+        IList data,
+        object[] originalValues,
+        IReadOnlyList<McmRenderedValueSnapshot> renderedValues)
     {
         Data = data;
         OriginalValues = originalValues;
+        RenderedValues = renderedValues;
     }
 
     public IList Data { get; }
 
     public object[] OriginalValues { get; }
+
+    public IReadOnlyList<McmRenderedValueSnapshot> RenderedValues { get; }
+}
+
+internal sealed class McmRenderedValueSnapshot
+{
+    public McmRenderedValueSnapshot(IConfigValue config, object originalValue)
+    {
+        Config = config;
+        OriginalValue = originalValue;
+    }
+
+    public IConfigValue Config { get; }
+
+    public object OriginalValue { get; }
 }
 
 [HarmonyPatch]
