@@ -97,8 +97,9 @@ uses a supported numeric seed field plus a **Random seed** toggle. The in-game n
 `-10000000` through `10000000`; the JSON setting still accepts any signed 32-bit integer.
 
 Only the active preset's detailed World, Progression, and Stash sections are displayed. Selecting a
-different active profile and saving rebuilds the CustomStart page with that profile's controls;
-settings belonging to the previously displayed profile are saved before the switch.
+different active profile immediately rebuilds the CustomStart page with that profile's controls.
+Unsaved edits are retained while moving between profiles; **Save** commits all of them and the
+selected profile, while MCM's normal discard action reverts them.
 
 MCM writes the canonical JSON file. Changes apply to the next genuinely new campaign; they do not
 rewrite an existing save. Exact faction IDs, roster allow/exclude lists, guaranteed IDs, economy

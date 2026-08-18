@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -22,9 +23,8 @@ internal static class McmIntegration
 
     private static ModConfig? _config;
     private static Action<ModConfig>? _save;
-    private static List<IConfigValue>? _registeredValues;
-    private static string _displayedProfileName = string.Empty;
-    private static bool _refreshRequested;
+    private static object? _mcmMenu;
+    private static bool _preserveDirtyStateForProfileSwitch;
     private static bool _registered;
 
     public static bool TryRegister(ModConfig config, Action<ModConfig> save)
@@ -62,14 +62,22 @@ internal static class McmIntegration
     private static void Register()
     {
         ModConfig config = _config ?? throw new InvalidOperationException("MCM configuration was not initialized.");
-        List<IConfigValue> values = CreateValues(config, config.ActiveProfile);
-        _registeredValues = values;
-        _displayedProfileName = config.ActiveProfile;
+        List<IConfigValue> values = CreateValues(config);
         ModConfigMenuAPI.RegisterModConfig("CustomStart", values, OnSave);
     }
 
-    private static List<IConfigValue> CreateValues(ModConfig config, string profileName)
+    private static List<IConfigValue> CreateValues(ModConfig config)
     {
+        DropdownConfig activeProfile = new(
+            nameof(ModConfig.ActiveProfile),
+            config.ActiveProfile,
+            "General",
+            "Early",
+            "Choose which campaign snapshot is used for the next new game.",
+            "Active profile",
+            ProfileNames.Cast<object>().ToList());
+        activeProfile.OnValueChanged += OnActiveProfileChanged;
+
         List<IConfigValue> values = new()
         {
             new ConfigValue(
@@ -79,14 +87,7 @@ internal static class McmIntegration
                 true,
                 "Enable CustomStart for newly created campaigns.",
                 "Enabled"),
-            new DropdownConfig(
-                nameof(ModConfig.ActiveProfile),
-                config.ActiveProfile,
-                "General",
-                "Early",
-                "Choose which campaign snapshot is used for the next new game.",
-                "Active profile",
-                ProfileNames.Cast<object>().ToList()),
+            activeProfile,
             new ConfigValue(
                 RandomSeedKey,
                 !config.Seed.HasValue,
@@ -123,7 +124,11 @@ internal static class McmIntegration
                 "General")
         };
 
-        AddProfileControls(values, profileName, config.Profiles[profileName]);
+        foreach (string profileName in ProfileNames)
+        {
+            AddProfileControls(values, profileName, config.Profiles[profileName]);
+        }
+
         return values;
     }
 
@@ -426,28 +431,17 @@ internal static class McmIntegration
             config.AllowCivilResistanceAndTezctlanReputationChanges = Convert.ToBoolean(
                 values[nameof(ModConfig.AllowCivilResistanceAndTezctlanReputationChanges)],
                 CultureInfo.InvariantCulture);
-            ApplyProfileValues(
-                config.Profiles[_displayedProfileName],
-                _displayedProfileName,
-                values);
+            foreach (string profileName in ProfileNames)
+            {
+                ApplyProfileValues(config.Profiles[profileName], profileName, values);
+            }
 
             List<string> warnings = new();
             ModConfig.Normalize(config, warnings.Add);
             _save?.Invoke(config);
-            bool profileChanged = !config.ActiveProfile.Equals(
-                _displayedProfileName,
-                StringComparison.Ordinal);
-            if (profileChanged)
-            {
-                RebuildRegisteredValues(config, config.ActiveProfile);
-            }
-
-            string successMessage = profileChanged
-                ? $"Saved. The detailed editor switched to {config.ActiveProfile}."
-                : "Saved. Changes apply to the next newly created campaign.";
             feedbackMessage = warnings.Count == 0
-                ? successMessage
-                : successMessage + " Normalization: " + string.Join(" ", warnings);
+                ? "Saved. Changes apply to the next newly created campaign."
+                : "Saved with normalization: " + string.Join(" ", warnings);
             return true;
         }
         catch (Exception exception)
@@ -512,62 +506,115 @@ internal static class McmIntegration
                     : StartProfile.CreateEarly();
     }
 
-    private static void RebuildRegisteredValues(ModConfig config, string profileName)
+    private static void OnActiveProfileChanged()
     {
-        if (_registeredValues == null)
+        if (_mcmMenu == null)
         {
             return;
         }
 
-        Action? mcmValueChanged = _registeredValues
-            .Select(value => value.OnValueChanged)
-            .FirstOrDefault(handler => handler != null);
-        List<IConfigValue> newValues = CreateValues(config, profileName);
-        if (mcmValueChanged != null)
-        {
-            foreach (IConfigValue value in newValues)
-            {
-                value.OnValueChanged += mcmValueChanged;
-            }
-        }
-
-        _registeredValues.Clear();
-        _registeredValues.AddRange(newValues);
-        _displayedProfileName = profileName;
-        _refreshRequested = true;
-    }
-
-    internal static void RefreshEditorAfterSave(object menu)
-    {
-        if (!_refreshRequested)
-        {
-            return;
-        }
-
-        _refreshRequested = false;
+        _preserveDirtyStateForProfileSwitch = true;
         try
         {
             MethodInfo? reload = AccessTools.Method(
-                menu.GetType(),
+                _mcmMenu.GetType(),
                 "ReloadModRoot",
                 new[] { typeof(bool) });
             if (reload == null)
             {
-                Debug.LogWarning(LogPrefix + "MCM could not refresh the active-profile editor automatically. Reopen the Mods screen.");
+                _preserveDirtyStateForProfileSwitch = false;
+                Debug.LogWarning(LogPrefix + "MCM could not switch the active-profile editor automatically. Reopen the Mods screen.");
                 return;
             }
 
-            reload.Invoke(menu, new object[] { false });
+            reload.Invoke(_mcmMenu, new object[] { false });
         }
         catch (Exception exception)
         {
-            Debug.LogWarning(LogPrefix + "MCM could not refresh the active-profile editor automatically. Reopen the Mods screen. " + exception.Message);
+            _preserveDirtyStateForProfileSwitch = false;
+            Debug.LogWarning(LogPrefix + "MCM could not switch the active-profile editor automatically. Reopen the Mods screen. " + exception.Message);
         }
+    }
+
+    internal static McmDataSnapshot? FilterMcmDataForActiveProfile(object menu, object modConfig)
+    {
+        string? modName = AccessTools.Field(modConfig.GetType(), "ModName")?.GetValue(modConfig) as string;
+        if (!string.Equals(modName, "CustomStart", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        _mcmMenu = menu;
+        MethodInfo? getData = AccessTools.Method(modConfig.GetType(), "GetData");
+        if (getData?.Invoke(modConfig, null) is not IList data)
+        {
+            return null;
+        }
+
+        object[] originalValues = data.Cast<object>().ToArray();
+        IConfigValue? activeProfile = originalValues
+            .OfType<IConfigValue>()
+            .FirstOrDefault(value => value.Key.Equals(nameof(ModConfig.ActiveProfile), StringComparison.Ordinal));
+        string profileName = Convert.ToString(
+            activeProfile?.UnstoredValue ?? activeProfile?.Value,
+            CultureInfo.InvariantCulture) ?? string.Empty;
+        string profilePrefix = profileName + ".";
+
+        data.Clear();
+        foreach (object value in originalValues)
+        {
+            if (value is not IConfigValue configValue
+                || !configValue.Key.Contains(".")
+                || configValue.Key.StartsWith(profilePrefix, StringComparison.Ordinal))
+            {
+                data.Add(value);
+            }
+        }
+
+        return new McmDataSnapshot(data, originalValues);
+    }
+
+    internal static void RestoreMcmData(McmDataSnapshot? snapshot)
+    {
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        snapshot.Data.Clear();
+        foreach (object value in snapshot.OriginalValues)
+        {
+            snapshot.Data.Add(value);
+        }
+    }
+
+    internal static bool ConsumeProfileSwitchDirtyStatePreservation()
+    {
+        if (!_preserveDirtyStateForProfileSwitch)
+        {
+            return false;
+        }
+
+        _preserveDirtyStateForProfileSwitch = false;
+        return true;
     }
 }
 
+internal sealed class McmDataSnapshot
+{
+    public McmDataSnapshot(IList data, object[] originalValues)
+    {
+        Data = data;
+        OriginalValues = originalValues;
+    }
+
+    public IList Data { get; }
+
+    public object[] OriginalValues { get; }
+}
+
 [HarmonyPatch]
-internal static class McmSaveCurrentModPatch
+internal static class McmBuildModConfigPatch
 {
     [HarmonyPrepare]
     private static bool Prepare()
@@ -579,12 +626,41 @@ internal static class McmSaveCurrentModPatch
     private static MethodBase? TargetMethod()
     {
         Type? menuType = AccessTools.TypeByName("ModConfigMenu.ModConfigMenu");
-        return menuType == null ? null : AccessTools.Method(menuType, "SaveCurrentMod");
+        return menuType == null ? null : AccessTools.Method(menuType, "BuildModConfig");
+    }
+
+    [HarmonyPrefix]
+    private static void Prefix(object __instance, object __0, out McmDataSnapshot? __state)
+    {
+        __state = McmIntegration.FilterMcmDataForActiveProfile(__instance, __0);
     }
 
     [HarmonyPostfix]
-    private static void Postfix(object __instance)
+    private static void Postfix(McmDataSnapshot? __state)
     {
-        McmIntegration.RefreshEditorAfterSave(__instance);
+        McmIntegration.RestoreMcmData(__state);
+    }
+}
+
+[HarmonyPatch]
+internal static class McmDiscardCurrentModChangesPatch
+{
+    [HarmonyPrepare]
+    private static bool Prepare()
+    {
+        return AccessTools.TypeByName("ModConfigMenu.ModConfigMenu") != null;
+    }
+
+    [HarmonyTargetMethod]
+    private static MethodBase? TargetMethod()
+    {
+        Type? menuType = AccessTools.TypeByName("ModConfigMenu.ModConfigMenu");
+        return menuType == null ? null : AccessTools.Method(menuType, "DiscardCurrentModChanges");
+    }
+
+    [HarmonyPrefix]
+    private static bool Prefix()
+    {
+        return !McmIntegration.ConsumeProfileSwitchDirtyStatePreservation();
     }
 }
