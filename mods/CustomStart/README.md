@@ -93,8 +93,9 @@ The in-game screen exposes the settings most players are likely to change:
   material stacks, upgrade-material units, and upgrade-material tier.
 
 The current MCM build does not render its advertised free-form text-box control, so CustomStart
-uses a supported numeric seed field plus a **Random seed** toggle. The in-game numeric field covers
-`-10000000` through `10000000`; the JSON setting still accepts any signed 32-bit integer.
+uses a supported numeric seed field. It defaults to `0`, which generates a fresh random seed for
+every new campaign. Enter any nonzero value for reproducible generation. The in-game field covers
+`-10000000` through `10000000`; JSON accepts any signed 32-bit nonzero integer.
 
 Only the active preset's detailed World, Progression, and Stash sections are displayed. Selecting a
 different active profile immediately rebuilds the CustomStart page with that profile's controls.
@@ -129,7 +130,7 @@ Top-level settings:
 | --- | --- |
 | `Enabled` | When false, new games use the vanilla start. |
 | `ActiveProfile` | Name of the profile used for the next new game. |
-| `Seed` | `null` creates a new random seed. An integer makes the generated plan reproducible. |
+| `Seed` | `null` or `0` creates a new random seed. A nonzero integer makes the generated plan reproducible. |
 | `WriteReport` | Writes the exact generated outcome after each new game. |
 | `DisableStationTransfersOnUnknownBuild` | On an unvalidated game assembly, suppress only station transfers while keeping the rest of the profile active. |
 | `AllowCivilResistanceAndTezctlanReputationChanges` | When true, Civil Resistance and Tezctlan may be selected as helped or rival factions. Defaults to false. |

@@ -17,7 +17,6 @@ namespace CustomStart;
 internal static class McmIntegration
 {
     private const string LogPrefix = "[CustomStart] ";
-    private const string RandomSeedKey = "__RandomSeed";
 
     private static readonly string[] ProfileNames = { "Early", "EarlyMid", "Mid", "Late" };
 
@@ -25,6 +24,7 @@ internal static class McmIntegration
     private static Action<ModConfig>? _save;
     private static object? _mcmMenu;
     private static bool _preserveDirtyStateForProfileSwitch;
+    private static bool _bypassDirtyProfileSwitchConfirmation;
     private static bool _registered;
 
     public static bool TryRegister(ModConfig config, Action<ModConfig> save)
@@ -88,22 +88,15 @@ internal static class McmIntegration
                 "Enable CustomStart for newly created campaigns.",
                 "Enabled"),
             activeProfile,
-            new ConfigValue(
-                RandomSeedKey,
-                !config.Seed.HasValue,
-                "General",
-                true,
-                "Generate a fresh random seed for every new campaign. Disable this to use the seed value below.",
-                "Random seed"),
             CreateRange(
                 nameof(ModConfig.Seed),
-                config.Seed ?? 12345,
-                12345,
+                config.Seed ?? 0,
+                0,
                 -10_000_000,
                 10_000_000,
                 "General",
-                "A reproducible signed seed. This is used only when Random seed is disabled; JSON accepts the full Int32 range.",
-                "Seed value"),
+                "Leave at 0 to generate a fresh random seed for every new campaign. Set any nonzero value for reproducible generation.",
+                "Seed (0 = random)"),
             new ConfigValue(
                 nameof(ModConfig.WriteReport),
                 config.WriteReport,
@@ -410,10 +403,8 @@ internal static class McmIntegration
         ModConfig config = _config ?? throw new InvalidOperationException("MCM configuration was not initialized.");
         try
         {
-            bool useRandomSeed = Convert.ToBoolean(values[RandomSeedKey], CultureInfo.InvariantCulture);
-            int? seed = useRandomSeed
-                ? null
-                : GetInt(values, nameof(ModConfig.Seed));
+            int seedValue = GetInt(values, nameof(ModConfig.Seed));
+            int? seed = seedValue == 0 ? null : seedValue;
 
             string activeProfile = Convert.ToString(
                 values[nameof(ModConfig.ActiveProfile)],
@@ -514,6 +505,7 @@ internal static class McmIntegration
         }
 
         _preserveDirtyStateForProfileSwitch = true;
+        _bypassDirtyProfileSwitchConfirmation = true;
         try
         {
             MethodInfo? reload = AccessTools.Method(
@@ -522,7 +514,6 @@ internal static class McmIntegration
                 new[] { typeof(bool) });
             if (reload == null)
             {
-                _preserveDirtyStateForProfileSwitch = false;
                 Debug.LogWarning(LogPrefix + "MCM could not switch the active-profile editor automatically. Reopen the Mods screen.");
                 return;
             }
@@ -531,8 +522,12 @@ internal static class McmIntegration
         }
         catch (Exception exception)
         {
-            _preserveDirtyStateForProfileSwitch = false;
             Debug.LogWarning(LogPrefix + "MCM could not switch the active-profile editor automatically. Reopen the Mods screen. " + exception.Message);
+        }
+        finally
+        {
+            _preserveDirtyStateForProfileSwitch = false;
+            _bypassDirtyProfileSwitchConfirmation = false;
         }
     }
 
@@ -598,6 +593,33 @@ internal static class McmIntegration
         _preserveDirtyStateForProfileSwitch = false;
         return true;
     }
+
+    internal static bool TryBypassProfileSwitchConfirmation(object menu, object newMod, object newModRoot)
+    {
+        if (!_bypassDirtyProfileSwitchConfirmation)
+        {
+            return false;
+        }
+
+        _bypassDirtyProfileSwitchConfirmation = false;
+        MethodInfo? changeMod = AccessTools.Method(menu.GetType(), "ChangeMod");
+        if (changeMod == null)
+        {
+            Debug.LogWarning(LogPrefix + "MCM could not complete the active-profile refresh without its confirmation dialog.");
+            return false;
+        }
+
+        try
+        {
+            changeMod.Invoke(menu, new[] { newMod, newModRoot });
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(LogPrefix + "MCM could not complete the active-profile refresh without its confirmation dialog. " + exception.Message);
+            return false;
+        }
+    }
 }
 
 internal sealed class McmDataSnapshot
@@ -662,5 +684,28 @@ internal static class McmDiscardCurrentModChangesPatch
     private static bool Prefix()
     {
         return !McmIntegration.ConsumeProfileSwitchDirtyStatePreservation();
+    }
+}
+
+[HarmonyPatch]
+internal static class McmCheckForChangesAndSwitchModPatch
+{
+    [HarmonyPrepare]
+    private static bool Prepare()
+    {
+        return AccessTools.TypeByName("ModConfigMenu.ModConfigMenu") != null;
+    }
+
+    [HarmonyTargetMethod]
+    private static MethodBase? TargetMethod()
+    {
+        Type? menuType = AccessTools.TypeByName("ModConfigMenu.ModConfigMenu");
+        return menuType == null ? null : AccessTools.Method(menuType, "CheckForChangesAndSwitchMod");
+    }
+
+    [HarmonyPrefix]
+    private static bool Prefix(object __instance, object __0, object __1)
+    {
+        return !McmIntegration.TryBypassProfileSwitchConfirmation(__instance, __0, __1);
     }
 }

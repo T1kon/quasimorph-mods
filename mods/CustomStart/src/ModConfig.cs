@@ -60,6 +60,12 @@ public sealed class ModConfig
 
         config.SchemaVersion = CurrentSchemaVersion;
 
+        // MCM uses zero as its editable "random every campaign" sentinel.
+        if (config.Seed == 0)
+        {
+            config.Seed = null;
+        }
+
         if (string.IsNullOrWhiteSpace(config.ActiveProfile) || !config.Profiles.ContainsKey(config.ActiveProfile))
         {
             warn($"Active profile '{config.ActiveProfile}' does not exist; using Early.");
