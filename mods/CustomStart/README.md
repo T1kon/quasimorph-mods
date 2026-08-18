@@ -85,16 +85,20 @@ The in-game screen exposes the settings most players are likely to change:
 
 - Enable/disable, active profile, deterministic seed, special-faction reputation history, and
   diagnostic reporting.
-- Elapsed time, helped/rival faction counts, and station-history counts for every profile.
+- Elapsed time, helped/rival faction counts, and station-history counts for the active profile.
 - Clone, class, and Magnum progression targets.
 - Faction reward counts; weapons, complete armor sets, common/specialist ammunition, medicine,
-  repair kits, augmentations, implants, and learned-recipe targets for every profile.
+  repair kits, augmentations, implants, and learned-recipe targets for the active profile.
 - Common-ammunition and repair stack sizes, material-stockpile size, rare-material cap, common
   material stacks, upgrade-material units, and upgrade-material tier.
 
 The current MCM build does not render its advertised free-form text-box control, so CustomStart
 uses a supported numeric seed field plus a **Random seed** toggle. The in-game numeric field covers
 `-10000000` through `10000000`; the JSON setting still accepts any signed 32-bit integer.
+
+Only the active preset's detailed World, Progression, and Stash sections are displayed. Selecting a
+different active profile and saving rebuilds the CustomStart page with that profile's controls;
+settings belonging to the previously displayed profile are saved before the switch.
 
 MCM writes the canonical JSON file. Changes apply to the next genuinely new campaign; they do not
 rewrite an existing save. Exact faction IDs, roster allow/exclude lists, guaranteed IDs, economy
