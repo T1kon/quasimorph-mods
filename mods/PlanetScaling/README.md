@@ -1,6 +1,7 @@
 # Planet Scaling
 
-Planet Scaling changes the normal 3D orbital view so that the Magnum feels small beside planets. It does not modify the 2D destination-selection starmap.
+Planet Scaling changes the normal 3D orbital view so that the Magnum feels small beside planets.
+It does not modify the 2D destination-selection starmap.
 
 The mod is deliberately visual-only:
 
@@ -10,13 +11,28 @@ The mod is deliberately visual-only:
 - attached particle effects, including the travelling exhaust, follow the reduced ship hierarchy
   without increasing their emission density;
 - the ship-upgrade overview camera follows the reduced model;
-- individual module cameras retain their vanilla distances, while affected aim offsets follow the reduced ship;
+- individual module cameras retain their vanilla distances, while affected aim offsets follow the
+  reduced ship;
 - planet sizes, orbit paths, travel time, click targets, UI anchors, and save data are unchanged;
-- individual ship-module cameras retain their vanilla distances.
 
 ## Configuration
 
-Edit `config.json` in the installed mod directory and restart the game.
+PlanetScaling supports Crynano's
+[Mod Configuration Menu](https://steamcommunity.com/sharedfiles/filedetails/?id=3469678797).
+When MCM is installed, open **Mods** from Quasimorph's main menu and select **PlanetScaling**.
+MCM is optional; without it, PlanetScaling continues to use JSON normally.
+
+The configuration is stored at:
+
+```text
+%USERPROFILE%\AppData\LocalLow\Magnum Scriptum LTD\Quasimorph_ModConfigs\PlanetScaling\config.json
+```
+
+On the first run of this version, the installed `config.json` is copied there. MCM and manual JSON
+edits use this persistent copy afterward. A newer non-default installed file is imported so a
+manual JSON edit made in the old location can still migrate. Workshop updates containing the
+packaged defaults do not overwrite a customized persistent file. Saved changes apply the next time
+the orbital view is loaded.
 
 | Setting | Default | Range | Effect |
 | --- | ---: | ---: | --- |
@@ -32,7 +48,8 @@ Suggested alternatives:
 
 ## Planet proportions
 
-This version does not scale any planet. Quasimorph's primary planet models already use roughly astronomical relative radii:
+This version does not scale any planet. Quasimorph's primary planet models already use roughly
+astronomical relative radii:
 
 | Body | Vanilla model radius | Relative to Earth |
 | --- | ---: | ---: |
@@ -43,14 +60,22 @@ This version does not scale any planet. Quasimorph's primary planet models alrea
 | Jupiter | 455 | 12.30 |
 | Saturn | 430 | 11.62 |
 
-Jupiter and Saturn are somewhat exaggerated relative to their astronomical ratios, but the larger visual difference comes from the camera. Vanilla ship-orbit radii are approximately 28 around Mercury, 50 around Venus, 60 around Earth, and 800 around Jupiter and Saturn. Reducing the fixed camera-to-ship distance therefore enlarges Mercury and Venus much more on screen than the gas giants. This is perspective, not additional planet scaling.
+Jupiter and Saturn are somewhat exaggerated relative to their astronomical ratios, but the larger
+visual difference comes from the camera. Vanilla ship-orbit radii are approximately 28 around
+Mercury, 50 around Venus, 60 around Earth, and 800 around Jupiter and Saturn. Reducing the fixed
+camera-to-ship distance therefore enlarges Mercury and Venus much more on screen than the gas
+giants. This is perspective, not additional planet scaling.
 
 ## Build
 
-The project expects Quasimorph at `C:\Games\Steam\steamapps\common\Quasimorph`. Override `GameManagedDir` when building if needed:
+The project expects Quasimorph at `C:\Games\Steam\steamapps\common\Quasimorph` and MCM Workshop
+item `3469678797` in the same Steam library. Override `GameManagedDir` and `McmAssemblyPath` when
+building if needed:
 
 ```powershell
-dotnet build .\src\PlanetScaling.csproj -c Release -p:GameManagedDir="D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed"
+dotnet build .\src\PlanetScaling.csproj -c Release `
+  -p:GameManagedDir="D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed" `
+  -p:McmAssemblyPath="D:\SteamLibrary\steamapps\workshop\content\2059170\3469678797\MCM.dll"
 ```
 
 The resulting DLL is copied into `package`.
@@ -64,3 +89,4 @@ Copy the contents of `package` into:
 ```
 
 The game loads assemblies from `LocalUserPresets` during startup. A restart is required after replacing the DLL.
+Subscribe to MCM if in-game configuration is desired; it is not required for JSON-only use.

@@ -1,4 +1,5 @@
 .work/
+__pycache__/
 bin/
 obj/
 mods/*/package/*.dll
